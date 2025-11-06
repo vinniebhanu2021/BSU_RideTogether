@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BSU_RideTogether - Login</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background: linear-gradient(135deg, #e10088, #ff6f91);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .login-container {
+      background-color: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 400px;
+      animation: fadeIn 1s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      from {
+        opacity: 0;
+        transform: translateY(50px);
+      }
+    }
+
+    .login-container h2 {
+      color: #e10088;
+      margin-bottom: 25px;
+      text-align: center;
+      font-size: 2em;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+
+    .btn {
+      background-color: #e10088;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: #c0006e;
+    }
+
+    .toggle-section {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 0.9em;
+    }
+
+    .toggle-section a {
+      color: #e10088;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginContainer">
+    <h2>BSU RideTogether</h2>
+    <div class="input-group">
+      <label for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" placeholder="Enter email (e.g., user@student.bridgew.edu)">
+    </div>
+    <div class="input-group">
+      <label for="loginPassword">Password</label>
+      <input type="password" id="loginPassword" placeholder="Enter password">
+    </div>
+    <button class="btn" onclick="login()">Login</button>
+    <div class="toggle-section">
+      Don’t have an account? <a onclick="toggleForm()">Sign up</a>
+    </div>
+  </div>
+
+  <div class="login-container" id="signupContainer" style="display: none">
+    <h2>Sign Up</h2>
+    <div class="input-group">
+      <label for="signupUsername">Username</label>
+      <input type="text" id="signupUsername" placeholder="Enter your name">
+    </div>
+    <div class="input-group">
+      <label for="signupEmail">Email</label>
+      <input type="email" id="signupEmail" placeholder="Enter your email (e.g., user@student.bridgew.edu)">
+    </div>
+    <div class="input-group">
+      <label for="signupPassword">Password</label>
+      <input type="password" id="signupPassword" placeholder="Choose password">
+    </div>
+    <button class="btn" onclick="signup()">Sign Up</button>
+    <div class="toggle-section">
+      Already have an account? <a onclick="toggleForm()">Login</a>
+    </div>
+  </div>
+
+  <script>
+    function toggleForm() {
+      const loginBox = document.getElementById("loginContainer");
+      const signupBox = document.getElementById("signupContainer");
+      if (loginBox.style.display === "none") {
+        loginBox.style.display = "block";
+        signupBox.style.display = "none";
+      } else {
+        loginBox.style.display = "none";
+        signupBox.style.display = "block";
+      }
+    }
+
+    function validateEmail(email) {
+      // General email format validation
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!re.test(email)) {
+        return { isValid: false, message: "Please enter a valid email address format." };
+      }
+
+      // Domain specific validation
+      const allowedDomain = "student.bridgew.edu";
+      if (!email.endsWith("@" + allowedDomain)) {
+        return { isValid: false, message: "Only emails with the domain '@" + allowedDomain + "' are allowed." };
+      }
+      return { isValid: true, message: "" };
+    }
+
+    function signup() {
+      const username = document.getElementById("signupUsername").value.trim();
+      const email = document.getElementById("signupEmail").value.trim();
+      const password = document.getElementById("signupPassword").value;
+
+      if (!username || !email || !password) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      const emailValidationResult = validateEmail(email);
+      if (!emailValidationResult.isValid) {
+        alert(emailValidationResult.message);
+        return;
+      }
+
+      // Check if user already exists with this email (optional, but good practice)
+      const existingUser = JSON.parse(localStorage.getItem("user"));
+      if (existingUser && existingUser.email === email) {
+          alert("An account with this email already exists. Please login.");
+          toggleForm(); // Switch to login form
+          return;
+      }
+
+      localStorage.setItem("user", JSON.stringify({ username, email, password }));
+      alert("Signup successful! Please login.");
+      document.getElementById("signupUsername").value = ""; // Clear fields
+      document.getElementById("signupEmail").value = "";
+      document.getElementById("signupPassword").value = "";
+      toggleForm();
+    }
+
+    function login() {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+      }
+
+      const emailValidationResult = validateEmail(email);
+      if (!emailValidationResult.isValid) {
+        alert(emailValidationResult.message);
+        return;
+      }
+
+      const stored = JSON.parse(localStorage.getItem("user"));
+
+      if (stored && stored.email === email && stored.password === password) {
+        localStorage.setItem("userEmail", email); // Storing email for use in main.html
+        window.location.href = "main.html"; // Ensure main.html exists
+      } else {
+        alert("Invalid credentials or user not found. Please check your email and password or sign up.");
+      }
+    }
+  </script>
+</body>
+</html>

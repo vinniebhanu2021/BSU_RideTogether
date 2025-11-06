@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BSU_RideTogether - Location Selection</title>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDQpM-7qONlz7FOLyQpu00541jRoIkb16U&libraries=places"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Arial, sans-serif; /* Modern font */
+    }
+
+    body {
+      background-color: #e10088;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+      overflow-x: hidden; /* Prevent horizontal scrollbars from animations */
+    }
+
+    /* General Animation for major blocks */
+    h1, h2, .user-info, .location-selector-container, .options, .ride-history {
+        animation: fadeInUp 0.8s ease-out forwards;
+        opacity: 0; /* Start hidden */
+    }
+
+    h1 {
+      font-size: 2.8em; /* Slightly larger */
+      margin-bottom: 0.1em;
+      animation-delay: 0.1s;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      font-size: 1.6em; /* Slightly larger */
+      margin-bottom: 1.5em; /* More spacing */
+      animation-delay: 0.2s;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .user-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 600px;
+      background-color: rgba(255, 255, 255, 0.25); /* Slightly more opaque */
+      padding: 12px 25px; /* More padding */
+      border-radius: 12px; /* Softer radius */
+      margin-bottom: 25px;
+      animation-delay: 0.3s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .user-info span {
+      font-size: 1.15em; /* Slightly larger */
+      font-weight: 500;
+    }
+
+    .user-info button {
+      background-color: #000;
+      color: #fff;
+      border: none;
+      padding: 10px 18px; /* More padding */
+      border-radius: 8px; /* Softer radius */
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .user-info button:hover {
+      background-color: #333;
+      transform: scale(1.05);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+    }
+
+    .location-selector-container {
+      width: 100%;
+      max-width: 600px;
+      background-color: rgba(255, 255, 255, 0.2); /* Consistent opacity */
+      padding: 25px; /* More padding */
+      border-radius: 18px; /* Softer radius */
+      margin-bottom: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px; /* More gap */
+      animation-delay: 0.4s;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    .location-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px; /* More gap */
+    }
+
+    .location-input-group label {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .location-input-group input[type="text"] {
+      width: 100%;
+      padding: 14px; /* More padding */
+      border-radius: 10px; /* Softer radius */
+      border: 2px solid transparent; /* Start with transparent border for animation */
+      font-size: 1em;
+      background-color: #f8f8f8; /* Lighter background */
+      color: #333;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .location-input-group input[type="text"]:focus {
+      outline: none;
+      border-color: #c0006e; /* Theme color accent */
+      box-shadow: 0 0 10px rgba(225, 0, 136, 0.5); /* Glow effect */
+    }
+
+    .select-on-map-btn {
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: none;
+      background-color: #000;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.9em;
+      align-self: flex-start;
+      margin-top: 5px;
+      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .select-on-map-btn:hover {
+      background-color: #333;
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .select-on-map-btn.active-selection {
+      background-color: #c0006e; /* Darker theme color */
+      font-weight: bold;
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    .options {
+      display: flex;
+      justify-content: center;
+      gap: 25px; /* More gap */
+      margin-bottom: 35px;
+      flex-wrap: wrap;
+      animation-delay: 0.5s;
+    }
+
+    .option-card {
+      background-color: #fff;
+      color: #000;
+      padding: 25px; /* More padding */
+      border-radius: 18px; /* Softer radius */
+      width: 160px; /* Slightly wider */
+      text-align: center;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15); /* Softer shadow */
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      animation: scaleUp 0.5s ease-out forwards;
+      opacity: 0; /* Start hidden for individual animation */
+    }
+    .options .option-card:nth-child(1) { animation-delay: 0.6s; }
+    .options .option-card:nth-child(2) { animation-delay: 0.7s; }
+    .options .option-card:nth-child(3) { animation-delay: 0.8s; }
+
+
+    .option-card:hover {
+      transform: translateY(-10px) scale(1.03); /* Lift and scale effect */
+      box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+    }
+
+    .option-card:hover img {
+        transform: scale(1.1); /* Icon grows on hover */
+    }
+    .option-card:hover button {
+        animation: nudgeArrow 0.5s ease-in-out;
+    }
+
+    .option-card img {
+      width: 70px; /* Adjusted size */
+      height: 70px;
+      margin-bottom: 12px;
+      transition: transform 0.3s ease;
+    }
+
+    .option-card div { /* For the text */
+        font-weight: 600;
+        font-size: 1.05em;
+    }
+
+    .option-card button {
+      margin-top: 15px; /* More spacing */
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 40px; /* Larger button */
+      height: 40px;
+      font-size: 1.5em; /* Larger arrow */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .option-card button:hover {
+        background: #c0006e; /* Theme color on hover */
+        transform: scale(1.1);
+    }
+
+    .ride-history {
+      width: 100%;
+      max-width: 700px;
+      margin-top: 40px;
+      background-color: #ffffff; /* Solid white */
+      color: #333;
+      border-radius: 20px;
+      padding: 30px 35px; /* More padding */
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Softer, larger shadow */
+      animation-delay: 0.6s;
+    }
+
+    .ride-history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px; /* More spacing */
+      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+    }
+
+    .ride-history-header h3 {
+      font-size: 2em; /* Larger */
+      color: #e10088;
+      font-weight: 600;
+    }
+
+    .ride-history button.clear-logs-btn,
+    .ride-history button.switch-history-btn { /* Style for switch buttons too */
+      background: linear-gradient(135deg, #e10088, #c0006e); /* Gradient background */
+      color: #fff;
+      border: none;
+      padding: 10px 20px; /* More padding */
+      border-radius: 10px; /* Softer radius */
+      cursor: pointer;
+      font-size: 0.95em;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .ride-history button.clear-logs-btn:hover,
+    .ride-history button.switch-history-btn:hover {
+      background: linear-gradient(135deg, #c0006e, #e10088);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 15px rgba(225, 0, 136, 0.3);
+    }
+    .ride-history button.switch-history-btn.active {
+        background: linear-gradient(135deg, #333, #555);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+
+    .ride-card {
+      padding: 20px;
+      margin-bottom: 18px; /* More spacing */
+      border-radius: 15px;
+      background-color: #f9f9f9; /* Lighter card background */
+      border-left: 6px solid #e10088; /* Thicker border */
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInItem 0.5s ease-out forwards; /* Animation for new items */
+    }
+
+    .ride-card:hover {
+      transform: scale(1.03); /* Slightly more pronounced scale */
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 0 15px rgba(225, 0, 136, 0.3); /* Combined shadow */
+    }
+
+    .ride-card h4 {
+      margin-bottom: 10px; /* More spacing */
+      font-size: 1.25em; /* Slightly larger */
+      color: #222; /* Darker heading */
+    }
+
+    .ride-card p {
+      margin: 5px 0; /* More spacing */
+      color: #555;
+      font-size: 0.95em;
+    }
+
+    .ride-status {
+      font-size: 0.9em;
+      font-weight: bold;
+      color: green; /* Default color for 'Booked' */
+      margin-top: 8px;
+      padding: 5px 10px;
+      background-color: rgba(0, 128, 0, 0.1);
+      border-radius: 5px;
+      display: inline-block;
+    }
+    .ride-status.offered { /* Specific style for offered rides */
+        color: #007bff;
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+    .ride-status.pending-approval { /* Specific style for pending approval by driver */
+        color: #ffc107; /* Amber/Yellow */
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+
+
+    .track-button {
+      background: #e10088;
+      color: white;
+      padding: 8px 18px; /* More padding */
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      margin-top: 12px;
+      font-weight: bold;
+      font-size: 0.9em;
+      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .track-button:hover {
+      background-color: #c0006e; /* Darker shade */
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(225, 0, 136, 0.4);
+    }
+
+    .pending-ride-actions {
+        margin-top: 10px;
+    }
+    .pending-ride-actions button {
+        padding: 8px 15px;
+        margin: 5px 5px 5px 0;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .pending-ride-actions .accept-btn {
+        background-color: #28a745; /* Green */
+        color: white;
+        box-shadow: 0 2px 5px rgba(40, 167, 69, 0.2);
+    }
+    .pending-ride-actions .accept-btn:hover {
+        background-color: #218838;
+        transform: scale(1.05) translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    }
+    .pending-ride-actions .reject-btn {
+        background-color: #dc3545; /* Red */
+        color: white;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2);
+    }
+    .pending-ride-actions .reject-btn:hover {
+        background-color: #c82333;
+        transform: scale(1.05) translateY(-1px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+    
+/* Keyframes for animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInItem {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes nudgeArrow {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 5px rgba(225, 0, 136, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(225, 0, 136, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(225, 0, 136, 0.2); }
+}
+
+/* Modal styles (hidden by default) */
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.7); /* Darker overlay */
+  display: none; /* Changed to none, JS will handle display */
+  justify-content: center;
+  align-items: center;
+  animation: fadeInModalOverlay 0.4s ease forwards;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 30px 35px; /* More padding */
+  border-radius: 15px;
+  color: #333;
+  max-width: 500px;
+  width: 90%;
+  animation: modalContentShow 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; /* Springy effect */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+@keyframes fadeInModalOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalContentShow {
+  from { opacity: 0; transform: scale(0.8) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+/* Input fields on focus - already handled above */
+
+.option-card.disabled {
+  opacity: 0.6; /* More visible when disabled */
+  pointer-events: none;
+  filter: grayscale(80%); /* Visual cue for disabled */
+}
+
+
+/* Modal Confirmation Buttons */
+#confirmationModal .modal-content button,
+#mapModal .modal-content button,
+#trackingModal .modal-content button {
+  margin: 1rem 0.5rem 0 0.5rem;
+  padding: 0.7rem 1.5rem; /* More padding */
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+}
+
+#confirmationModal .modal-content button:first-of-type, /* Continue button */
+#mapModal .modal-content button, /* Close button */
+#trackingModal .modal-content button /* Close button */
+ {
+  background: linear-gradient(135deg, #e10088, #c0006e);
+  color: white;
+  box-shadow: 0 4px 10px rgba(225, 0, 136, 0.3);
+}
+
+#confirmationModal .modal-content button:first-of-type:hover,
+#mapModal .modal-content button:hover,
+#trackingModal .modal-content button:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 15px rgba(225, 0, 136, 0.4);
+}
+
+#confirmationModal .modal-content button:last-of-type { /* Cancel button */
+  background-color: #e0e0e0; /* Light gray */
+  color: #333;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#confirmationModal .modal-content button:last-of-type:hover {
+  background-color: #d0d0d0; /* Darker gray */
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+
+#confirmationModal h3, #mapModal h3, #trackingModal h3 {
+  margin-bottom: 1.5rem; /* More spacing */
+  font-size: 1.6rem; /* Larger */
+  color: #e10088; /* Theme color */
+}
+
+#confirmationModal p, #mapModal p, #trackingModal p {
+  margin: 0.7rem 0; /* More spacing */
+  font-size: 1.05rem; /* Slightly larger */
+  color: #444; /* Softer text color */
+  line-height: 1.6;
+}
+#confirmationModal p strong, #mapModal p strong, #trackingModal p strong {
+    color: #333;
+}
+
+
+.ride-log-section {
+  display: block; /* Initially block for the first one */
+  animation: fadeInItem 0.5s ease-out; /* Consistent fade-in */
+}
+
+/* Hide initially if not active - JS will manage this */
+#rideLogOffered, #rideLogPending {
+    display: none;
+}
+  </style>
+</head>
+<body>
+  <h1>BSU</h1>
+  <h2>RideTogether</h2>
+
+  <div class="user-info">
+    <span id="welcomeMessage">Welcome, Rider!</span>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="location-selector-container">
+    <div class="location-input-group">
+      <label for="pickupAddress">Pickup Location:</label>
+      <input type="text" id="pickupAddress" placeholder="Enter pickup location" />
+    </div>
+
+    <div class="location-input-group">
+      <label for="destinationAddress">Destination:</label>
+      <input type="text" id="destinationAddress" placeholder="Enter destination location" />
+    </div>
+  </div>
+
+  <div class="options">
+    <div class="option-card" onclick="confirmRide()">
+      <img src="https://img.icons8.com/ios-filled/100/car.png" alt="Get a ride" />
+      <div>Get a Ride</div>
+      <button>→</button>
+    </div>
+    <div class="option-card" onclick="showTracking()">
+      <img src="https://img.icons8.com/ios-filled/100/marker.png" alt="Tracking location" />
+      <div>Track My Ride</div>
+      <button>→</button>
+    </div>
+    <div id="giveRideCard" class="option-card" onclick="giveRide()"> <img src="https://img.icons8.com/ios-filled/100/steering-wheel.png" alt="Give a ride" />
+      <div>Give a Ride</div>
+      <button>→</button>
+    </div>
+  </div>
+
+  <div id="confirmationModal" class="modal" style="display: none;"> <div class="modal-content">
+      <h3>Confirm Your Ride</h3>
+      <p>Pickup: <strong id="confirmPickup"></strong></p>
+      <p>Destination: <strong id="confirmDestination"></strong></p>
+      <p>Are you sure you want to book this ride?</p>
+      <button onclick="proceedRide()">Yes, Continue</button>
+      <button onclick="closeConfirmation()">Cancel</button>
+    </div>
+  </div>
+
+  <div id="mapModal" class="modal" style="display: none;"> <div class="modal-content">
+      <h3>Ride Details & Route</h3>
+      <iframe id="mapFrameEmbed" width="100%" height="300" style="border:1px solid #ddd; border-radius: 8px; margin-bottom: 15px;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <p><strong>Pickup:</strong> <span id="pickupText"></span></p>
+      <p><strong>Destination:</strong> <span id="destinationText"></span></p>
+      <p><strong>Estimated Price:</strong> $<span id="price"></span></p>
+      <button onclick="closeMap()">Close</button>
+    </div>
+  </div>
+
+  <div id="trackingModal" class="modal" style="display: none;"> <div class="modal-content">
+      <h3>Tracking Your Ride</h3>
+      <iframe id="trackingMapEmbed" width="100%" height="300" style="border:1px solid #ddd; border-radius: 8px; margin-bottom: 15px;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <p><strong>Pickup:</strong> <span id="trackPickup"></span></p>
+      <p><strong>Destination:</strong> <span id="trackDestination"></span></p>
+      <p><strong>Status:</strong> <span id="trackStatus" style="color: green; font-weight: bold;">En Route</span></p>
+      <button onclick="closeTracking()">Close</button>
+    </div>
+  </div>
+
+  <div class="ride-history">
+    <div class="ride-history-header">
+        <h3>Ride History</h3>
+        <button class="clear-logs-btn" onclick="clearLogs()">Clear All Logs</button>
+    </div>
+    
+    <div style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+      <button class="switch-history-btn active" id="btnRidesTaken" onclick="switchHistory('taken')">Rides Taken</button>
+      <button class="switch-history-btn" id="btnRidesOffered" onclick="switchHistory('offered')">Rides Offered</button>
+      <button class="switch-history-btn" id="btnPendingRides" onclick="switchHistory('pending')">Pending Requests</button>
+    </div>
+    
+    <div id="rideLogTaken" class="ride-log-section">
+        </div>
+    <div id="rideLogOffered" class="ride-log-section" style="display: none;">
+        </div>
+    <div id="rideLogPending" class="ride-log-section" style="display: none;">
+        </div>
+    
+  </div>
+
+  <script>
+    const pickupInput = document.getElementById('pickupAddress');
+    const destinationInput = document.getElementById('destinationAddress');
+    const apiKey = 'AIzaSyDQpM-7qONlz7FOLyQpu00541jRoIkb16U'; // Your API Key
+
+    const BASE_FARE = 2.00; // Base fare in dollars
+    const RATE_PER_MILE = 2.00; // Cost per mile in dollars
+    const METERS_TO_MILES_CONVERSION_FACTOR = 0.000621371; // 1 meter = 0.000621371 miles
+
+    if (pickupInput && destinationInput) {
+        new google.maps.places.Autocomplete(pickupInput);
+        new google.maps.places.Autocomplete(destinationInput);
+    } else {
+        console.error("Autocomplete input fields not found.");
+    }
+
+    let ridesTaken = JSON.parse(localStorage.getItem("ridesTaken") || "[]");
+    let ridesOffered = JSON.parse(localStorage.getItem("ridesOffered") || "[]");
+    let pendingRideRequests = JSON.parse(localStorage.getItem("pendingRideRequests") || "[]");
+    const currentUserName = localStorage.getItem("userName") || "Test User";
+
+    function confirmRide() {
+        const pickup = pickupInput.value;
+        const destination = destinationInput.value;
+        if (!pickup || !destination) {
+            alert("Please enter both pickup and destination locations.");
+            return;
+        }
+        document.getElementById('confirmPickup').textContent = pickup;
+        document.getElementById('confirmDestination').textContent = destination;
+        document.getElementById('confirmationModal').style.display = 'flex';
+    }
+
+    function closeConfirmation() {
+        document.getElementById('confirmationModal').style.display = 'none';
+    }
+
+    // Passenger requests a ride
+    function proceedRide() {
+        const pickup = pickupInput.value;
+        const destination = destinationInput.value;
+
+        // Ensure pickup and destination are provided (additional check)
+        if (!pickup || !destination) {
+            alert("Please enter both pickup and destination locations before proceeding.");
+            closeConfirmation(); // Close the modal if it was somehow opened
+            return;
+        }
+
+        const directionsService = new google.maps.DirectionsService();
+
+        directionsService.route(
+            {
+                origin: pickup,
+                destination: destination,
+                travelMode: google.maps.TravelMode.DRIVING,
+            },
+            (response, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    const route = response.routes[0].legs[0];
+                    if (!route || !route.distance || typeof route.distance.value === 'undefined') {
+                        alert("Could not retrieve distance for the selected route. Please try different locations.");
+                        closeConfirmation();
+                        return;
+                    }
+                    const distanceInMeters = route.distance.value;
+                    const distanceInMiles = distanceInMeters * METERS_TO_MILES_CONVERSION_FACTOR;
+
+                    const price = calculatePrice(distanceInMiles); // Calculate price using the fetched distance
+
+                    if (price === "N/A") {
+                        alert("Could not calculate a valid price for the selected route. This might be due to an invalid distance. Please try different locations.");
+                        closeConfirmation();
+                        return;
+                    }
+                    
+                    const rideRequest = {
+                        id: Date.now(),
+                        pickup,
+                        destination,
+                        price, // This is the fare the passenger sees/expects
+                        date: new Date().toLocaleString(), // Request submission time (for display)
+                        status: "Awaiting Driver Confirmation",
+                        type: "PASSENGER_REQUEST", // Crucial for differentiating in pending list
+                        passengerName: currentUserName,
+                        requestDate: new Date().toISOString(), // For reliable sorting
+                        distanceMiles: distanceInMiles.toFixed(2) // Store calculated distance
+                    };
+                    pendingRideRequests.push(rideRequest);
+                    localStorage.setItem("pendingRideRequests", JSON.stringify(pendingRideRequests));
+                    
+                    renderRideLogs();
+                    showRideDetailsMap(pickup, destination, price); // Show what was requested
+                    resetForm();
+                    closeConfirmation();
+                    alert("Your ride request has been submitted and is awaiting driver confirmation. You can see it in 'Pending Actions'.");
+
+                    const giveRideCard = document.getElementById('giveRideCard');
+                    if (giveRideCard) {
+                        giveRideCard.classList.remove('disabled');
+                    }
+                } else {
+                    alert("Directions request failed due to " + status + ". Please check your locations or API key quota and try again.");
+                    closeConfirmation();
+                }
+            }
+        );
+    }
+
+    function showRideDetailsMap(pickup, destination, price) {
+        // Corrected embed URL
+        const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(destination)}&mode=driving`;
+        document.getElementById('mapFrameEmbed').src = embedUrl;
+        document.getElementById('pickupText').textContent = pickup;
+        document.getElementById('destinationText').textContent = destination;
+        document.getElementById('price').textContent = price; // This will now show the calculated price
+        document.getElementById('mapModal').style.display = 'flex';
+    }
+
+    function closeMap() {
+        document.getElementById('mapModal').style.display = 'none';
+    }
+
+    function showTracking() {
+        const lastRide = ridesTaken.length > 0 ? 
+            [...ridesTaken].sort((a,b) => new Date(b.requestDate || b.date) - new Date(a.requestDate || a.date))
+                            .find(r => r.status === "Ride Confirmed by Driver" || r.status === "Booked with Driver" || r.status === "En Route") 
+            : null;
+
+        if (!lastRide) {
+            alert("No recently confirmed or active ride to track. Please check ride status or wait for confirmation.");
+            return;
+        }
+        trackSpecificRide(lastRide.pickup, lastRide.destination, lastRide.status);
+    }
+    
+    function trackSpecificRide(pickup, destination, status) {
+        // Corrected embed URL
+        const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(destination)}&mode=driving`;
+        document.getElementById('trackingMapEmbed').src = embedUrl;
+        document.getElementById('trackPickup').textContent = pickup;
+        document.getElementById('trackDestination').textContent = destination;
+        document.getElementById('trackStatus').textContent = status || "En Route";
+        document.getElementById('trackingModal').style.display = 'flex';
+    }
+
+    function closeTracking() {
+        document.getElementById('trackingModal').style.display = 'none';
+    }
+
+    function resetForm() {
+        if (pickupInput) pickupInput.value = '';
+        if (destinationInput) destinationInput.value = '';
+    }
+
+    // Modified calculatePrice function
+    function calculatePrice(distanceInMiles) {
+        // Check if distanceInMiles is a valid number and not negative
+        if (typeof distanceInMiles !== 'number' || isNaN(distanceInMiles) || distanceInMiles < 0) {
+            console.error("Invalid distance for price calculation:", distanceInMiles);
+            return "N/A"; // Return "N/A" if distance is invalid
+        }
+        const calculatedFare = BASE_FARE + (distanceInMiles * RATE_PER_MILE);
+        return calculatedFare.toFixed(2); // Return price formatted to 2 decimal places
+    }
+
+    function renderRideLogs() {
+        const logTakenContainer = document.getElementById("rideLogTaken");
+        const logOfferedContainer = document.getElementById("rideLogOffered");
+        const logPendingContainer = document.getElementById("rideLogPending");
+
+        if (logTakenContainer) {
+            logTakenContainer.innerHTML = ridesTaken.length === 0 ? "<p style='text-align:center; color:#777;'>No rides taken yet.</p>" : "";
+        }
+        if (logOfferedContainer) {
+            logOfferedContainer.innerHTML = ridesOffered.length === 0 ? "<p style='text-align:center; color:#777;'>No rides offered yet.</p>" : "";
+        }
+        if (logPendingContainer) {
+            logPendingContainer.innerHTML = pendingRideRequests.length === 0 ? "<p style='text-align:center; color:#777;'>No pending ride actions.</p>" : "";
+        }
+
+        const sortedRidesTaken = [...ridesTaken].sort((a, b) => new Date(b.requestDate || b.date) - new Date(a.requestDate || a.date));
+        const sortedRidesOffered = [...ridesOffered].sort((a, b) => new Date(b.requestDate || b.date) - new Date(a.requestDate || a.date));
+        const sortedPendingRequests = [...pendingRideRequests].sort((a, b) => 
+            new Date(b.requestDate || b.date || 0) - new Date(a.requestDate || a.date || 0)
+        );
+
+        if (logTakenContainer) {
+            sortedRidesTaken.forEach((ride) => {
+                const div = document.createElement("div");
+                div.className = "ride-card";
+                // Added display for distance if available
+                const distanceInfo = ride.distanceMiles ? `<p><strong>Distance:</strong> ${ride.distanceMiles} miles</p>` : '';
+                div.innerHTML = `
+                    <h4>Ride on: ${new Date(ride.date).toLocaleString()}</h4>
+                    <p><strong>From:</strong> ${ride.pickup}</p>
+                    <p><strong>To:</strong> ${ride.destination}</p>
+                    <p><strong>Fare:</strong> $${ride.price}</p>
+                    ${distanceInfo}
+                    <p class="ride-status">${ride.status}</p>
+                    ${(ride.status === "Ride Confirmed by Driver" || ride.status === "Booked with Driver" || ride.status === "En Route") ? `<button class="track-button" onclick="trackSpecificRide('${ride.pickup}', '${ride.destination}', '${ride.status}')">Track This Ride</button>` : ''}
+                    ${ride.driverName ? `<p><strong>Driver:</strong> ${ride.driverName}</p>` : ''}
+                `;
+                logTakenContainer.appendChild(div);
+            });
+        }
+
+        if (logOfferedContainer) {
+            sortedRidesOffered.forEach(ride => {
+                const div = document.createElement("div");
+                div.className = "ride-card";
+                let statusClass = "offered";
+                if (ride.status === "Booked by Passenger") statusClass = "confirmed";
+                else if (ride.status === "Awaiting Passenger Booking") statusClass = "pending-approval"; 
+
+                // Added display for distance if available (assuming it might be added to offers too)
+                const distanceInfo = ride.distanceMiles ? `<p><strong>Distance:</strong> ${ride.distanceMiles} miles</p>` : '';
+                div.innerHTML = `
+                    <h4>Offered on: ${new Date(ride.date).toLocaleString()}</h4>
+                    <p><strong>From:</strong> ${ride.pickup}</p>
+                    <p><strong>To:</strong> ${ride.destination}</p>
+                    <p><strong>Expected Fare:</strong> $${ride.price}</p>
+                    ${distanceInfo}
+                    <p><strong>Seats Available:</strong> ${ride.seats || 'Not specified'}</p>
+                    <p class="ride-status ${statusClass}">${ride.status}</p>
+                    ${ride.passengerName ? `<p><strong>Passenger:</strong> ${ride.passengerName}</p>` : ''}
+                    ${ride.driverName && ride.driverName !== currentUserName ? `<p><strong>Driver:</strong> ${ride.driverName}</p>` : ''}
+                `;
+                logOfferedContainer.appendChild(div);
+            });
+        }
+
+        if (logPendingContainer) {
+            sortedPendingRequests.forEach(request => {
+                const div = document.createElement("div");
+                div.className = "ride-card";
+                // Added display for distance if available in pending requests
+                const distanceInfo = request.distanceMiles ? `<p><strong>Est. Distance:</strong> ${request.distanceMiles} miles</p>` : '';
+
+                if (request.type === "PASSENGER_REQUEST") {
+                    div.innerHTML = `
+                        <h4>Pending Passenger Request (ID: ${request.id})</h4>
+                        <p><strong>From:</strong> ${request.pickup}</p>
+                        <p><strong>To:</strong> ${request.destination}</p>
+                        <p><strong>Passenger:</strong> ${request.passengerName || 'N/A'}</p>
+                        <p><strong>Offered Fare:</strong> $${request.price}</p>
+                        ${distanceInfo}
+                        <p><strong>Requested At:</strong> ${new Date(request.requestDate).toLocaleString()}</p>
+                        <p class="ride-status pending-approval">${request.status}</p>
+                        <div class="pending-ride-actions">
+                            <button class="accept-btn" onclick="acceptPendingRide(${request.id})">Accept Request</button>
+                            <button class="reject-btn" onclick="rejectPendingRide(${request.id}, '${request.type}')">Reject Request</button>
+                        </div>
+                    `;
+                } else if (request.type === "DRIVER_OFFER") {
+                    div.innerHTML = `
+                        <h4>Pending Driver Offer (ID: ${request.id})</h4>
+                        <p><strong>From:</strong> ${request.pickup}</p>
+                        <p><strong>To:</strong> ${request.destination}</p>
+                        <p><strong>Driver:</strong> ${request.driverName || 'N/A'}</p>
+                        <p><strong>Fare:</strong> $${request.price}</p>
+                        ${distanceInfo}
+                        <p><strong>Seats:</strong> ${request.seats || '1'}</p>
+                        <p><strong>Offered At:</strong> ${new Date(request.requestDate).toLocaleString()}</p>
+                        <p class="ride-status available">${request.status}</p>
+                        <div class="pending-ride-actions">
+                            ${ (request.driverName !== currentUserName) ? `<button class="book-offer-btn" onclick="bookDriverOffer(${request.id})">Book This Offer</button>` : ''}
+                            ${ (request.driverName === currentUserName) ? `<button class="reject-btn" onclick="rejectPendingRide(${request.id}, '${request.type}')">Cancel My Offer</button>` : ''}
+                        </div>
+                    `;
+                } else {
+                    div.innerHTML = `<h4>Unknown Pending Item (ID: ${request.id})</h4><p>Details not available. Type: ${request.type || 'N/A'}</p>`;
+                }
+                logPendingContainer.appendChild(div);
+            });
+        }
+    }
+
+    function acceptPendingRide(rideId) {
+        const rideIndex = pendingRideRequests.findIndex(r => r.id === rideId && r.type === "PASSENGER_REQUEST");
+        if (rideIndex === -1) {
+            alert("Could not find passenger request (ID: " + rideId + ") to accept.");
+            return;
+        }
+
+        const passengerRequest = pendingRideRequests.splice(rideIndex, 1)[0];
+
+        ridesOffered.push({
+            id: passengerRequest.id,
+            pickup: passengerRequest.pickup,
+            destination: passengerRequest.destination,
+            price: passengerRequest.price,
+            distanceMiles: passengerRequest.distanceMiles, // Carry over distance
+            date: new Date().toLocaleString(), 
+            requestDate: passengerRequest.requestDate,
+            status: "Confirmed with Passenger",
+            seats: 1, 
+            passengerName: passengerRequest.passengerName,
+            driverName: currentUserName,
+            originalRequestId: passengerRequest.id
+        });
+
+        ridesTaken.push({
+            id: passengerRequest.id,
+            pickup: passengerRequest.pickup,
+            destination: passengerRequest.destination,
+            price: passengerRequest.price,
+            distanceMiles: passengerRequest.distanceMiles, // Carry over distance
+            date: passengerRequest.date,
+            requestDate: passengerRequest.requestDate,
+            status: "Ride Confirmed by Driver",
+            driverName: currentUserName 
+        });
+
+        localStorage.setItem("pendingRideRequests", JSON.stringify(pendingRideRequests));
+        localStorage.setItem("ridesOffered", JSON.stringify(ridesOffered));
+        localStorage.setItem("ridesTaken", JSON.stringify(ridesTaken));
+        renderRideLogs();
+        alert(`Ride request from ${passengerRequest.passengerName} accepted. It's in your 'Rides Offered' and confirmed for the passenger.`);
+    }
+
+    function bookDriverOffer(offerId) {
+        const offerIndex = pendingRideRequests.findIndex(r => r.id === offerId && r.type === "DRIVER_OFFER");
+        if (offerIndex === -1) {
+            alert("Could not find driver offer (ID: " + offerId + ") to book.");
+            return;
+        }
+
+        const driverOffer = pendingRideRequests.splice(offerIndex, 1)[0];
+
+        ridesTaken.push({
+            id: driverOffer.id,
+            pickup: driverOffer.pickup,
+            destination: driverOffer.destination,
+            price: driverOffer.price,
+            distanceMiles: driverOffer.distanceMiles, // Carry over distance
+            date: new Date().toLocaleString(),
+            requestDate: new Date().toISOString(),
+            status: "Booked with Driver",
+            driverName: driverOffer.driverName,
+            passengerName: currentUserName
+        });
+        
+        ridesOffered.push({
+            id: driverOffer.id,
+            pickup: driverOffer.pickup,
+            destination: driverOffer.destination,
+            price: driverOffer.price,
+            distanceMiles: driverOffer.distanceMiles, // Carry over distance
+            seats: driverOffer.seats,
+            date: driverOffer.date,
+            requestDate: driverOffer.requestDate,
+            status: "Booked by Passenger",
+            passengerName: currentUserName, 
+            driverName: driverOffer.driverName,
+            originalRequestId: driverOffer.id 
+        });
+        
+        localStorage.setItem("pendingRideRequests", JSON.stringify(pendingRideRequests));
+        localStorage.setItem("ridesTaken", JSON.stringify(ridesTaken));
+        localStorage.setItem("ridesOffered", JSON.stringify(ridesOffered));
+        renderRideLogs();
+        alert(`You booked the ride offered by ${driverOffer.driverName}. It's in 'Rides Taken' & confirmed for the driver.`);
+    }
+
+    function rejectPendingRide(rideId, type) {
+        const initialPendingCount = pendingRideRequests.length;
+        const itemToReject = pendingRideRequests.find(r => r.id === rideId);
+
+        pendingRideRequests = pendingRideRequests.filter(r => r.id !== rideId);
+        
+        if (pendingRideRequests.length < initialPendingCount && itemToReject) {
+            localStorage.setItem("pendingRideRequests", JSON.stringify(pendingRideRequests));
+            renderRideLogs();
+            if (itemToReject.type === "PASSENGER_REQUEST") {
+                alert(`Ride request from ${itemToReject.passengerName || 'ID: '+rideId} rejected.`);
+            } else if (itemToReject.type === "DRIVER_OFFER") {
+                alert(`Your offer (ID: ${rideId}) has been cancelled.`);
+            }
+        } else {
+            alert(`Could not find item ID ${rideId} to remove.`);
+        }
+    }
+
+    function clearLogs() {
+        if (confirm("Are you sure you want to clear all ride logs (Taken, Offered, and Pending Actions)? This cannot be undone.")) {
+            localStorage.removeItem("ridesTaken");
+            localStorage.removeItem("ridesOffered");
+            localStorage.removeItem("pendingRideRequests");
+            ridesTaken = [];
+            ridesOffered = [];
+            pendingRideRequests = [];
+            renderRideLogs();
+            alert("All ride logs have been cleared.");
+        }
+    }
+
+    function switchHistory(type) {
+        const logTaken = document.getElementById("rideLogTaken");
+        const logOffered = document.getElementById("rideLogOffered");
+        const logPending = document.getElementById("rideLogPending");
+
+        const btnTaken = document.getElementById("btnRidesTaken");
+        const btnOffered = document.getElementById("btnRidesOffered");
+        const btnPending = document.getElementById("btnPendingRides");
+
+        if (logTaken) logTaken.style.display = 'none';
+        if (logOffered) logOffered.style.display = 'none';
+        if (logPending) logPending.style.display = 'none';
+        
+        if (btnTaken) btnTaken.classList.remove('active');
+        if (btnOffered) btnOffered.classList.remove('active');
+        if (btnPending) btnPending.classList.remove('active');
+
+        if (type === 'taken' && logTaken && btnTaken) {
+            logTaken.style.display = 'block';
+            btnTaken.classList.add('active');
+        } else if (type === 'offered' && logOffered && btnOffered) {
+            logOffered.style.display = 'block';
+            btnOffered.classList.add('active');
+        } else if (type === 'pending' && logPending && btnPending) {
+            logPending.style.display = 'block';
+            btnPending.classList.add('active');
+        }
+    }
+
+    function logout() {
+        alert("Logging out...");
+        // localStorage.removeItem("userName"); // Keep or remove as per app logic
+        window.location.href = "index.html"; 
+    }
+    
+    function giveRide() {
+        const giveRideCard = document.getElementById('giveRideCard');
+        if (giveRideCard && giveRideCard.classList.contains('disabled')) {
+            alert("This option may require profile completion or other actions first.");
+            return;
+        }
+        window.location.href = 'give_ride.html'; 
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const storedUserName = localStorage.getItem("userName");
+        if (storedUserName && document.getElementById("welcomeMessage")) {
+            document.getElementById("welcomeMessage").textContent = `Welcome, ${storedUserName}!`;
+        }
+        
+        ridesTaken = JSON.parse(localStorage.getItem("ridesTaken") || "[]");
+        ridesOffered = JSON.parse(localStorage.getItem("ridesOffered") || "[]");
+        pendingRideRequests = JSON.parse(localStorage.getItem("pendingRideRequests") || "[]");
+        
+        renderRideLogs();
+        switchHistory('pending'); 
+    });
+</script>
+</body>
+</html>

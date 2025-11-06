@@ -1,0 +1,201 @@
+президенты<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BSU_RideTogether - Offer a Ride</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDQpM-7qONlz7FOLyQpu00541jRoIkb16U&libraries=places"></script>
+    <style>
+        /* ... (your existing styles for give_ride.html) ... */
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #e10088; /* Theme color */
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 600px;
+            /* animation: fadeInUp 0.7s ease-out; */ /* Animation can be added back */
+        }
+        h1 {
+            color: #e10088;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 2.5em;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="datetime-local"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            font-size: 1em;
+            color: #333;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #e10088;
+            box-shadow: 0 0 8px rgba(225, 0, 136, 0.3);
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between; /* Or center, or flex-end */
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .button-group button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-grow: 1; /* Makes buttons take available space if needed */
+        }
+        .button-group button[type="submit"] {
+            background: linear-gradient(135deg, #e10088, #c0006e);
+            color: white;
+            box-shadow: 0 4px 10px rgba(225, 0, 136, 0.3);
+        }
+        .button-group button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(225, 0, 136, 0.4);
+        }
+        .button-group button.cancel-btn {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+         .button-group button.cancel-btn:hover {
+            background-color: #d0d0d0;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Offer a Ride</h1>
+        <form id="offerRideForm">
+            <div class="form-group">
+                <label for="offerPickupAddress">Pickup Location:</label>
+                <input type="text" id="offerPickupAddress" placeholder="Enter pickup location" required />
+            </div>
+            <div class="form-group">
+                <label for="offerDestinationAddress">Destination:</label>
+                <input type="text" id="offerDestinationAddress" placeholder="Enter destination location" required />
+            </div>
+            <div class="form-group">
+                <label for="offerRideDate">Date and Time:</label>
+                <input type="datetime-local" id="offerRideDate" required />
+            </div>
+            <div class="form-group">
+                <label for="offerPrice">Expected Fare ($):</label>
+                <input type="number" id="offerPrice" placeholder="e.g., 15.00" step="0.01" min="0" required />
+            </div>
+            <div class="form-group">
+                <label for="offerSeats">Available Seats:</label>
+                <input type="number" id="offerSeats" placeholder="e.g., 3" min="1" required />
+            </div>
+            <div class="button-group">
+                 <button type="button" class="cancel-btn" onclick="window.location.href='main.html'">Cancel</button>
+                <button type="submit">Offer This Ride</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const offerPickupInput = document.getElementById('offerPickupAddress');
+        const offerDestinationInput = document.getElementById('offerDestinationAddress');
+
+        if (offerPickupInput && offerDestinationInput && typeof google !== 'undefined' && google.maps && google.maps.places) {
+            new google.maps.places.Autocomplete(offerPickupInput);
+            new google.maps.places.Autocomplete(offerDestinationInput);
+        } else {
+            console.warn("Google Maps Places Autocomplete not initialized for offer inputs. API might not be loaded or inputs not found.");
+        }
+
+        document.getElementById('offerRideForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            console.log('[GIVE_RIDE_PAGE] Form submitted.');
+
+            const pickup = document.getElementById('offerPickupAddress').value;
+            const destination = document.getElementById('offerDestinationAddress').value;
+            const rideDateTime = document.getElementById('offerRideDate').value;
+            const priceInput = document.getElementById('offerPrice').value;
+            const seatsInput = document.getElementById('offerSeats').value;
+
+            console.log(`[GIVE_RIDE_PAGE] Raw inputs: Pickup='${pickup}', Dest='${destination}', DateTime='${rideDateTime}', Price='${priceInput}', Seats='${seatsInput}'`);
+
+
+            if (!pickup || !destination || !rideDateTime || priceInput === '' || seatsInput === '') {
+                alert('Please fill in all fields.');
+                console.error('[GIVE_RIDE_PAGE] Validation failed: Missing fields.');
+                return;
+            }
+            
+            const price = parseFloat(priceInput).toFixed(2);
+            const seats = parseInt(seatsInput);
+
+            if (isNaN(price) || price < 0 || isNaN(seats) || seats < 1) {
+                alert('Please enter valid numbers for price and seats.');
+                console.error('[GIVE_RIDE_PAGE] Validation failed: Invalid price or seats number.');
+                return;
+            }
+
+
+            const offeredRide = {
+                id: Date.now(),
+                pickup: pickup,
+                destination: destination,
+                date: new Date(rideDateTime).toLocaleString(),
+                price: price,
+                seats: seats,
+                status: "Offered"
+            };
+            console.log('[GIVE_RIDE_PAGE] Created offeredRide object:', offeredRide);
+
+            let ridesOfferedStorage = localStorage.getItem("ridesOffered");
+            console.log('[GIVE_RIDE_PAGE] Current ridesOffered from localStorage (raw):', ridesOfferedStorage);
+
+            let ridesOfferedArray = JSON.parse(ridesOfferedStorage || "[]");
+            console.log('[GIVE_RIDE_PAGE] Parsed ridesOfferedArray:', ridesOfferedArray);
+            
+            ridesOfferedArray.push(offeredRide);
+            console.log('[GIVE_RIDE_PAGE] ridesOfferedArray after push:', ridesOfferedArray);
+            
+            try {
+                localStorage.setItem("ridesOffered", JSON.stringify(ridesOfferedArray));
+                console.log('[GIVE_RIDE_PAGE] Successfully set ridesOffered in localStorage.');
+                alert('Ride offered successfully! Redirecting...');
+                window.location.href = 'main.html';
+            } catch (e) {
+                console.error('[GIVE_RIDE_PAGE] Error saving to localStorage:', e);
+                alert('Could not save ride offer. Please check console for errors.');
+            }
+        });
+    </script>
+</body>
+</html>
